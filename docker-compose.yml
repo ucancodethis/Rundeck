@@ -1,0 +1,57 @@
+version: '3'
+
+services:
+    rundeck:
+#        build:
+#            context: ./
+#            args:
+#                RUNDECK_IMAGE: ${RUNDECK_IMAGE:-rundeck/rundeck:SNAPSHOT}
+        image: harbor-flexcore.bitnamiapp.com/rundeck/com.mx.fintecheando.rundeck.app
+        tty: true
+        links:
+          - mysql
+        tty: true
+        environment:
+            TZ: "America/Mexico_City"
+            RUNDECK_GRAILS_URL: https://rundeck.ngrok.io 
+            RUNDECK_SERVER_FORWARDED: 'true'
+            RUNDECK_DATABASE_DRIVER: org.mariadb.jdbc.Driver
+            RUNDECK_DATABASE_USERNAME: rundeck
+            RUNDECK_DATABASE_PASSWORD: rundeck
+            RUNDECK_DATABASE_URL: jdbc:mysql://mysql/rundeck?autoReconnect=true&useSSL=false
+            RD_OPTS: "-Djavax.net.ssl.trustStore=fintecheando"
+#            RUNDECK_PLUGIN_EXECUTIONFILESTORAGE_NAME: org.rundeck.amazon-s3
+#            RUNDECK_PLUGIN_EXECUTIONFILESTORAGE_S3_BUCKET: ${RUNDECK_PLUGIN_EXECUTIONFILESTORAGE_S3_BUCKET}
+#            RUNDECK_PLUGIN_EXECUTIONFILESTORAGE_S3_REGION: ${RUNDECK_PLUGIN_EXECUTIONFILESTORAGE_S3_REGION}
+#            RUNDECK_STORAGE_CONVERTER_1_CONFIG_PASSWORD: ${RUNDECK_STORAGE_PASSWORD}
+#            RUNDECK_CONFIG_STORAGE_CONVERTER_1_CONFIG_PASSWORD: ${RUNDECK_STORAGE_PASSWORD}
+        ports:
+          - "4440:4440"
+        volumes:
+          - ./data:/home/rundeck/server/data
+          - ./var:/home/rundeck/var/
+          - ./ssh:/home/rundeck/.ssh
+          - ./realm.properties:/home/rundeck/server/config/realm.properties
+#          - ./config:/home/rundeck/server/config
+          - ./rundeck-config.properties:/home/rundeck/server/config/rundeck-config.properties
+#          - ${AWS_CREDENTIALS}:/home/rundeck/.aws/credentials
+#          - ${RUNDECK_LICENSE_FILE:-/dev/null}:/home/rundeck/etc/rundeckpro-license.key
+    nginx:
+        image: nginx
+        links:
+          - rundeck
+        volumes:
+          - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+        ports:
+          - 80:80
+    mysql:
+        image: mysql:5.7
+        expose:
+          - 3306
+        environment:
+          - MYSQL_ROOT_PASSWORD=root
+          - MYSQL_DATABASE=rundeck
+          - MYSQL_USER=rundeck
+          - MYSQL_PASSWORD=rundeck
+        volumes:
+          - ./dbdata:/var/lib/mysql
